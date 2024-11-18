@@ -40,8 +40,8 @@ addBtn.addEventListener('click', () => {
     newNoteListener(newNote);
     // Disable spellcheck for all input and textarea elements on page load
     document.querySelectorAll('input, textarea').forEach(function(element) {
-    element.setAttribute('spellcheck', 'false');
-});
+        element.setAttribute('spellcheck', 'false');
+    });
 
     // Save all notes to localStorage after adding a new one
     saveNotesToLocalStorage();
@@ -58,29 +58,65 @@ const newNoteListener = (note) => {
         saveNotesToLocalStorage();
     });
 
-    // Draggable functionality
+    // Draggable functionality (for both mouse and touch events)
     note.addEventListener('mousedown', (e) => {
-        x = e.clientX;
-        y = e.clientY;
-        note.style.cursor = 'move';
-
-        document.addEventListener('mousemove', mouseMove);
-        document.addEventListener('mouseup', mouseUp);
+        handleDragStart(e, note);
     });
 
-    const mouseMove = (e) => {
-        newX = x - e.clientX;
-        newY = y - e.clientY;
+    note.addEventListener('touchstart', (e) => {
+        handleDragStart(e, note);
+    });
 
-        x = e.clientX;
-        y = e.clientY;
+    const handleDragStart = (e, note) => {
+        // For mouse
+        if (e.type === 'mousedown') {
+            x = e.clientX;
+            y = e.clientY;
+        }
+        // For touch
+        if (e.type === 'touchstart') {
+            x = e.touches[0].clientX;
+            y = e.touches[0].clientY;
+        }
+
+        note.style.cursor = 'move';
+
+        // Add appropriate event listeners based on mouse or touch
+        const moveEvent = e.type === 'mousedown' ? 'mousemove' : 'touchmove';
+        const upEvent = e.type === 'mousedown' ? 'mouseup' : 'touchend';
+
+        document.addEventListener(moveEvent, handleMouseMove);
+        document.addEventListener(upEvent, handleMouseUp);
+    };
+
+    const handleMouseMove = (e) => {
+        // For mouse
+        if (e.type === 'mousemove') {
+            newX = x - e.clientX;
+            newY = y - e.clientY;
+            x = e.clientX;
+            y = e.clientY;
+        }
+        // For touch
+        if (e.type === 'touchmove') {
+            newX = x - e.touches[0].clientX;
+            newY = y - e.touches[0].clientY;
+            x = e.touches[0].clientX;
+            y = e.touches[0].clientY;
+        }
 
         note.style.top = (note.offsetTop - newY) + 'px';
         note.style.left = (note.offsetLeft - newX) + 'px';
     };
 
-    const mouseUp = () => {
-        document.removeEventListener('mousemove', mouseMove);
+    const handleMouseUp = () => {
+        // Remove both move and up event listeners after mouse/touch is released
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleMouseMove);
+        document.removeEventListener('touchend', handleMouseUp);
+
+        // Reset cursor back to normal
         note.style.cursor = 'auto';
 
         // Save updated notes to localStorage after moving one
